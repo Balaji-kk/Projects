@@ -1,0 +1,1123 @@
+---
+title: "Final Project"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Final Project
+
+```{r}
+install.packages('RCurl')
+```
+
+```{r}
+install.packages('mosaic')
+```
+
+
+```{r}
+install.packages('tidyverse')
+```
+```{r}
+install.packages("rlang")
+```
+
+```{r}
+install.packages('naniar')
+```
+
+```{r}
+install.packages('dplyr')
+
+```
+
+
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(reshape2)
+```
+
+
+```{r}
+library(tidyverse)
+library(naniar)
+library(mosaic)
+```
+
+
+
+```{r}
+df<-read.csv('dataset.csv')
+head(df)
+```
+
+
+```{r}
+summary(df)
+```
+
+
+```{r}
+glimpse(df)
+```
+
+##### Looking for missing values
+
+```{r}
+miss_var_summary(df)
+```
+
+
+
+##### visualizing missing values
+
+```{r}
+vis_miss(df,cluster = TRUE)
+```
+
+##### the number of missing values in each variable
+
+```{r}
+gg_miss_var(df)
+```
+
+##### finding missing cases which occurs in both rows
+
+```{r}
+gg_miss_upset(df)
+
+```
+
+##### Dropping the missing values 
+
+```{r}
+df_new<-drop_na(df)
+df_new<-as.data.frame.matrix(df_new)
+df_new
+```
+
+##### Checking for NA's in dataframe
+
+```{r}
+summary(df_new)
+
+```
+
+```{r}
+glimpse(df_new)
+```
+
+##### Exploratory data analysis
+
+```{r}
+ggplot(df_new,aes(GallusWeight,Age))+geom_bar(stat = 'identity',fill='blue')+xlab('Gallus Age in Days')+ylab('Gallus weight in Grams')+ggtitle('Gallus weight corresponding to their Age')
+
+```
+
+
+```{r}
+ggplot(df_new,aes(SunLightExposure,AmountOfFeed,color=GallusBreed))+geom_point()+xlab('Sunlight exposure of Gallus')+ylab('Amount of Feed')+ggtitle('Gallus breed and their corresponding feed and sunlight exposure')
+```
+
+
+```{r}
+breed<- df_new %>% group_by(GallusBreed)%>%summarize(Overall=sum(EggsPerDay))
+ggplot(breed,aes(GallusBreed,Overall,width=0.30))+geom_bar(stat = 'identity',col='black',fill='orange')+xlab('Gallus breed')+ylab('Total number of eggs')+ggtitle('Total number of Eggs laid by Gallus breed')
+```
+
+
+```{r}
+ggplot(df_new,aes(x=GallusEggWeight,fill=GallusEggColor))+geom_histogram(bins=50)+xlab('Gallus Egg Weight')+ggtitle('Gallus Egg weight based on color of Eggs')
+
+```
+
+##### Various egg colour
+```{r}
+ggplot(df_new,aes(GallusEggColor))+geom_bar(fill='brown')+xlab('Gallus Egg Color')+ylab('Total number of eggs')+ ggtitle('Gallus Egg Ratio')
+```
+
+
+```{r}
+ggplot(df_new,aes(GallusEggWeight,fill=GallusBreed))+geom_density(alpha=0.3)+xlab('Gallus Egg Weight')+ylab(' ')+ggtitle('Gallus weight based on Gallus Breed')
+
+```
+
+
+##### Box plot for finding outliers
+
+```{r}
+ggplot(stack(df_new),aes(x=ind,y= values))+geom_boxplot(color='brown')+coord_flip()
+
+```
+
+
+```{r}
+boxplot(df_new$AmountOfFeed,df_new$GallusEggWeight)
+title('boxplot for Amount of feed and Egg weight')
+
+```
+
+
+#### Statistical Analysis
+
+##### One sample t-test
+
+A study proposed that the mean Gallus weight is 1840 grams, we are conducting one sample t-test to check whether the true mean weight is 2200.
+
+```{r}
+Gallus_weight<-df_new$GallusWeight
+head(Gallus_weight)
+
+```
+
+To conduct a single sample t-test, We have to satisfy following conditions.
+
+The sample data should from single population- Gallus Breed(single population).
+
+One quatitative variable of interest- Gallus Weight(Quantitative and Continous).
+
+We want to make inference about population- We are making inference about the population of Gallus Breed.
+
+The sample size should be greater than 30- sample size(950).
+
+The data must be normally distributed- (Should be checked using qqnorm)
+
+###### Checking normal distribution of data
+
+```{r}
+qqnorm(Gallus_weight)
+
+```
+
+###### Using histogram to check normal distribution
+
+```{r}
+ggplot(df_new, aes(GallusWeight))+geom_histogram(binwidth =20)
+
+```
+
+The histogram proves that the data is not normally distributed. The points are spread all over the axis. The normality assumption is not met and we should be concerned about p-value and confidence interval. 
+
+Population Parameter:
+
+$$ The \quad population \quad parameter \quad we \quad  want \quad to \quad inference \quad is \quad \mu $$
+
+Hypothesis Testing:
+
+We are going to use Two sided T-test.
+
+The True mean weight of Gallus Chicken is 1840.
+
+$$H_0: \mu_0=  2200 $$
+The True mean weight of Gallus Chicken is different from 1840.
+
+$$H_0:\mu_A \neq 2200$$
+Sample Statistic:
+
+$$ The \quad  sample \quad statistic \quad is \quad the \quad sample \quad mean \quad \overline x $$
+Test Statistic:
+
+We don't know the Population variance of Gallus breed population, so we use sample statistic to estimate it and hence, the sample follows T-Distribution. As the t- distribution reaches infinity it becomes normally distributed. 
+
+
+###### t-value
+```{r}
+mean_gallus<- mean(Gallus_weight)
+
+mu_o<-2200
+
+n<-length(Gallus_weight)
+
+
+sd_gallus<- sd(Gallus_weight)
+sd_gallus
+
+t_value<- (mean_gallus-mu_o)/(sd_gallus/sqrt(n))
+t_value
+
+```
+
+###### Computing two sided P-value
+
+```{r}
+p_value<- pt(q=t_value, df=n-1, lower.tail = FALSE)*2
+p_value
+```
+
+###### Built-in T-test
+
+```{r}
+t.test(Gallus_weight,alternative = 'two.sided', mu=2200)
+```
+###### Based on our alternate hypothesis we are creating two sided confidence interval to estimate true population mean.
+
+###### Lower bound
+
+```{r}
+lower<-mean_gallus-(qt(0.975,n-1)*(sd_gallus/sqrt(n)))
+lower
+
+```
+
+###### Upper bound
+
+```{r}
+upper<-mean_gallus+(qt(0.975,n-1)*(sd_gallus/sqrt(n)))
+upper
+```
+
+###### Plotting T-value
+
+```{r}
+g<-seq(-5,5,0.01)
+df_new<-dt(seq(-5,5,0.01),n-1)
+plot(g,df_new,type='l',xlab='',ylab='',main=' Plotting t-distribution with n-1 df_new')
+abline(v=c(-t_value,t_value))
+text(-t_value,0.025,'t=- 2.240687',srt=0.2,pos=4)
+text(t_value,0.025,'t= 2.240687',srt=0.2,pos=2)
+abline(v=c(qt(0.025,n-1),qt(0.975,n-1)))
+text(qt(0.025,n-1),0.07,"t=-2.042272",srt=0.2,pos=2)
+text(qt(0.975,n-1),0.07,"t=2.042272",srt=0.2,pos=4)
+```
+
+###### Plotting the confidence interval
+
+```{r}
+plot(seq(-4,4,0.01),dt(seq(-4,4,0.01),n-1),type='l',xlab = '',ylab = '',main='Building 95% confidence interval')
+abline(v=0,col=c('yellow'))
+abline(v = c( upper*10^-3,lower*10^-3),col=c('blue','red'))
+text(qt(0.05,n-1),0.3,'Lower bound Confidence Interval',srt=0.3,pos=3)
+text(qt(0.05,n-1),0.2,'-2203.993 b/w -2260.323',srt=0.3,pos=3)
+abline(v = c(-upper*10^-3,-lower*10^-3),col=c('blue','red'))
+text(qt(0.975,n-1),0.3,'Upper bound Confidence Interval',srt=0.3,pos=3)
+text(qt(0.975,n-1),0.2,'2203.993 b/w 2260.323',srt=0.3,pos=3)
+```
+
+##### Bootstraping Method.
+
+```{r}
+num<-10000
+
+results<- rep(NA,num)
+
+for( i in 1: num){
+  results[i]<-mean(sample(x=Gallus_weight,size=n,replace=TRUE))
+}
+
+```
+
+###### Plotting sampling distribution of sample mean
+
+```{r}
+hist(results,freq=FALSE,main='Sampling distribution of sample mean',xlab='Average Gallus Weight')
+lines(x=seq(2180,2280,0.1),dnorm(seq(2180,2280,0.1),mean=mean(results),sd= sd(results)))
+```
+
+```{r}
+Gallus_weight
+```
+
+###### Plotting null hypothesis
+
+```{r}
+H0<- Gallus_weight-mean(Gallus_weight)+mu_o
+
+nums<-10000
+
+results_h0<-rep(NA,nums)
+
+for (i in 1 : nums) {
+  results_h0[i]<-mean(sample(x=H0,size=n,replace=TRUE))
+}
+
+```
+
+
+
+```{r}
+mean(H0)
+mean_gallus
+
+```
+
+###### Plotting Histogram
+
+```{r}
+hist(results_h0,freq = FALSE,main= 'Sampling mean of sample distribution given null hypothesis is true',xlab='Average mean weight of Gallus')
+m_gallus<-Gallus_weight-mean(Gallus_weight)+mu_o
+low_and_extreme<-mean(results_h0)+(mean(results_h0)-mean_gallus)
+abline(v=c(low_and_extreme),col='red')
+high_and_extreme<-mean_gallus
+abline(v=c(high_and_extreme),col='red')
+```
+
+
+```{r}
+sum_of_less_extreme_tail<-sum(results_h0 <= low_and_extreme)
+sum_of_less_extreme_tail
+sum_of_more_extreme_tail<-sum(results_h0 >= mean_gallus)
+sum_of_more_extreme_tail
+```
+
+###### bootstrap p-value
+```{r}
+boot_strap_p_value<- (sum_of_less_extreme_tail+sum_of_more_extreme_tail)/nums
+boot_strap_p_value
+```
+
+```{r}
+p_value
+```
+This gives the variation in P-value between One sample t-test and bootstrapping method.
+
+###### Building confidence interval
+
+```{r}
+bootstrap_sd<- sd(results)
+
+c(quantile(results,c(0.025,0.975)))
+
+```
+
+###### Building Confidence Interval
+
+```{r}
+plot(seq(-4,4,0.1),dt(seq(-4,4,0.1),n-1),type='l',xlab='',ylab='',main='Bootstrapping Confidence Interval')
+abline(v=c(0))
+abline(v=c(2204.116*10^-3,2260.643 *10^-3),col=c('blue','red'))
+text(qt(0.05,n-1),0.3,'Lower bound Confidence Interval',srt=0.3,pos=3)
+text(qt(0.05,n-1),0.25,'-2204.116 b/w -2260.643',srt=0.3,pos=3)
+abline(v=c(-2204.116*10^-3,-2260.643 *10^-3),col=c('blue','red'))
+text(qt(0.975,n-1),0.3,'Upper bound Confidence Interval',srt=0.3,pos=3)
+text(qt(0.975,n-1),0.25,'2204.116 b/w 2260.643',srt=0.3,pos=3)
+
+```
+###### Interpretation
+There is strong evidence(p-value= 0.02527703) to suggest that true mean weight of Gallus Chicken is different from 2200 grams. We reject null hypothesis that true mean weight of Gallus Chicken is 2200 at α = 0.05 level. With 95 %confidence, the true mean for weight of Gallus Chicken is 2230.72 b/w 2233.596 grams, which suggest that true mean is greater than 2200 grams.The interval using the emprical methods, especially the quantile method is much compact which agrees with our p-value being bit conservative and is bit significant when with compared traditional t-tools.  
+
+
+##### One sample Propotion Test
+
+The egg color of Gallus chicken is  Brown,Light-Blue and Bluish green, I want to find the proportion of Brown colored egg.  
+
+Conditions for doing One Sample Proportion test:
+
+Categorical variable of interest with two categories:
+
+We have categories of Brown,Light-Blue and Bluish green so we recode it into Light Blue or other.
+
+Sample comes from single population:
+
+The sample comes from single population of Gallus breed chicken.
+
+conditions to use:
+Exact Binomial test- no requirements
+
+Normal approcimation:
+np̂ ≥ 10  and n(1 -p̂) ≥ 10
+
+Parameter:
+
+The population parameter we want to make inference is True population proportion of brown colored eggs.
+
+Hypothesis 
+
+For hypothesis let me consider that light brown eggs is 95% of true population.
+
+```{r}
+df_new<-drop_na(df)
+df_new<-as.data.frame.matrix(df_new)
+```
+
+
+```{r}
+df_new%>%group_by(c(GallusBreed))%>%count(c(GallusEggColor))
+```
+
+###### Condition Check
+$$ n\hat{p} \geq 10 \\950(895/950)=895\\n(1-\hat{p})\geq 10 \\ 950(55/950)=55$$
+
+###### Hypothesis testing
+
+we are going to use one sided proportion-test.
+
+The True Proportion Brown egg color of Gallus Chicken  is 95 percent.
+
+$$H_0: \mu_0=  0.95 $$
+The True Proportion light Brown egg color of Gallus Chicken is greater than 95 percent.
+
+$$H_0:\mu_A > 0.95$$
+###### Sample Statistic
+$$ The \quad Sample \quad Statistic \quad is \quad  \hat{p}=\frac{895}{950}=0.9421$$
+###### Test Statistic
+
+
+```{r}
+p<-895/950
+z<-(p-0.95)/sqrt((0.95*(1-0.95))/950)
+z
+
+```
+
+```{r}
+pnorm( z,lower.tail =FALSE)
+```
+
+
+###### P-value for Upper bound
+
+```{r}
+binom.test(x=895,n=950,p=(0.95),alternative='greater')
+```
+
+###### Lower bound confidence interval
+
+```{r}
+cat('exact binomial test')
+binom.test(x=895,n=950,p=(0.95),alternative='greater')$conf.int
+
+```
+
+
+```{r}
+plot(seq(-3,3,0.1),dt(seq(-3,3,0.1),n-1),type='l',xlab = ' ',ylab='',main='Confidence interval')
+abline(v=c(1),col='blue')
+abline(v=c( 0.9280587),col='red')
+text(qt(0.95,n-1),0.3,'95%  Confidence Interval for of proportion brown egg is between  ',srt=0.2,pos=2.5)
+text(qt(0.975,n-1),0.25,'0.9280587 and 1.0000000 ',srt=0.2,pos=2)
+
+
+```
+
+##### Bootstrapping Method
+
+```{r}
+BROWN<-factor(rep(c('BROWN','other'),c(895,950-895)))
+table(BROWN)
+
+```
+
+
+```{r}
+BROWN<-rep(c(1,0),c(895,950-895))
+BROWN
+```
+
+
+```{r}
+nums<-10000
+
+results<- rep(NA,nums)
+
+for (i in 1:nums){
+  
+  results[i]<-mean(sample(x=BROWN,size=950,replace=TRUE))
+  
+}
+```
+
+###### Plotting sampling distribution
+
+```{r}
+hist(results,freq=FALSE,xlab='Proportion of Brown Eggs', main='Sampling distribution of the sample proportion',ylab='')
+
+lines(x=seq(0.91,0.97,0.001),dnorm(seq(0.91,0.97,0.001),mean=mean(results),sd=sd(results)))
+
+```
+
+###### Building Confidence Interval
+
+```{r}
+cat('Bootstrap confidence Interval')
+c(quantile(results,0.05,1))
+```
+
+```{r}
+plot(seq(-3,3,0.1),dt(seq(-3,3,0.1),n-1),type='l',xlab = ' ',ylab='',main='Confidence interval')
+abline(v=c(1),col='blue')
+abline(v=c( 0.9294737),col='red')
+text(qt(0.975,n-1),0.3,'95% Bootstrapping Confidence Interval ',srt=0.2,pos=2.5)
+text(qt(0.975,n-1),0.25,'0.9294737 and 1 ',srt=0.2,pos=2)
+
+```
+
+
+###### Plotting null hypothesis
+
+Under the simulation null hypothesis is true, we have 903 brown eggs
+
+```{r}
+Null_hypo<- rep(c(1,0),c(903,950-903))
+
+nums<-10000
+
+results<-rep(NA,nums)
+
+for (i in 1:nums){
+  results[i]<-mean(sample(x=Null_hypo,size=950,replace=TRUE))
+}
+
+```
+
+```{r}
+hist(results,freq=FALSE,xlab='Proportion of Brown eggs',ylab='',main='Sampling distribution of proportion under H0=0.95')
+
+abline(v=c(0.941),col='red')
+```
+
+###### Bootstrap P-value
+
+```{r}
+u<-sum(results >=0.95)
+bootstrap_pvalue<- u/nums
+cat('Bootstrap P-Value')
+bootstrap_pvalue
+```
+
+
+```{r}
+pnorm(z,lower.tail = FALSE)
+```
+```{r}
+binom.test(895,950,p=0.95,alternative = 'greater')
+```
+
+###### Interpretation
+
+There is strong evidence(p-value approx equal to  0.8678926) to suggest the true proportion of brown eggs is not greater than 95%. We cannot reject the null hypothesis that the true proportion of brown egg in gallus breed is equal to 95% at the α = 0.05. The true proportion of brown eggs in gallus breed is between 0.9280587 and 1 at  95% confidence interval.
+
+
+##### Two sample test for difference in means.
+
+A two sample T-test is used because data were collected from two different populaton.A Two Sample T-test has been used to find the difference in mean between two Population. We use t-test because we don't know the Variance of the population. 
+
+Condtions to do a two sample t-test.
+
+Question of interest must be difference in population.
+ 
+2 independet samples and should belong to different population.
+  
+The population must be normally distributed.
+ 
+ N<30, it shhould greater than 30.
+
+In the two sample t-test we are comparing the mean Amount of feed Gallus breed which two categories Maranus and Ameraucana.
+
+
+###### QQ plot is used to find wheather the data is normally distributed or not.(QQ plot for Amount of feed) 
+
+```{r}
+
+qqnorm(df_new$AmountOfFeed)
+
+```
+
+```{r}
+mydata<-filter(df_new,df_new$GallusBreed=='Ameraucana')
+sample<-mydata[sample(nrow(mydata),40),]
+
+```
+
+###### Grouping by categories.
+
+
+```{r}
+myda<-filter(df_new,df_new$GallusBreed=='Marans')
+sam<-myda[sample(nrow(myda),40),]
+
+df_new.n<-rbind(sample,sam)
+df_new.n
+
+```
+
+```{r}
+Marans<-(df_new.n$AmountOfFeed[df_new.n$GallusBreed=='Marans'])
+qqnorm(Marans)
+```
+
+
+```{r}
+Ameraucana<-(df_new.n$AmountOfFeed[df_new.n$GallusBreed=='Ameraucana'])
+qqnorm(Ameraucana)
+```
+
+###### Parameter
+
+$$ We \quad want\quad to\quad make\quad to\quad make\quad inference\quad about \quad population \quad mean \quad difference\quad \\between \quad Marans \quad and \quad Ameraucana \quad \mu_{M-A}$$
+
+###### Hypothesis Test
+
+$$H_{0}:\mu_{M-A}=0 \\The \quad population \quad mean \quad difference \quad between \quad Marans \quad and \quad Ameraucana \quad is \quad zero\\ \\H_{A}:\mu_{M-A} \neq 0 \\The \quad population \quad mean \quad difference \quad betweem \quad Marans \quad and \quad Ameraucana \quad is \quad greater than \quad 3 $$
+
+###### Sample Statistics
+$$\overline{x}_{M}-\overline{x}_{A} $$
+
+###### Test Statistic for Two sample T-test following T-distribution
+$$ t_{min}(n_{s}-1,n_{b}-1)=\frac{(x_{M}-x_{A})-(\mu_{M}-\mu_{A})}{\sqrt{\frac{s_s^2}{n_s}+\frac{s_b^2}{n_b}}}$$
+
+
+
+```{r}
+mean_m<-mean(Marans)
+mean_m
+
+mean_a<-mean(Ameraucana)
+mean_a
+
+mu_0<-0
+
+n_m<-length(Marans)
+n_m
+
+n_a<-length(Ameraucana)
+n_a
+
+s_m<-sd(Marans)**2
+s_m
+
+s_a<-sd(Ameraucana)**2
+s_a
+
+t_value<- (mean_m -mean_a-mu_0)/sqrt((s_m/n_m)+(s_a/n_a))
+t_value
+
+p_value<- pt(q=t_value,df=min(n_m,n_a)-1,lower.tail = FALSE)*2
+p_value
+
+```
+
+```{r}
+x_bar<-mean_m-mean_a
+x_bar
+```
+
+
+###### built in t-test
+
+```{r}
+t.test(Marans,Ameraucana)
+```
+
+```{r}
+upper<- (mean_m-mean_a)+qt(0.025,n-1)*sqrt((s_m)/(n_m)+(s_a)/(n_a))
+upper
+
+```
+```{r}
+lower<-(mean_m-mean_a)+qt(0.975,n-1)*sqrt((s_m)/(n_m)+(s_a)/(n_a))
+lower
+
+```
+
+
+###### Building confidence interval
+
+```{r}
+plot(seq(-7,7,0.01),dt(seq(-7,7,0.01),n-1),type='l',col='orange',xlab ='Difference in mean for Amount of feed',ylab = '',main='Confidence Interval Graph for mean amount of feed')
+abline(v = c (upper,lower),  col = c("red"))
+text(qt(0.001,n-1),0.3,'-1.160898 and -5.889102 ',pos=1)
+abline(v = c(-upper,-lower),  col = c("red", "blue"))
+text(qt(0.999,n-1),0.3,'1.160898 and 5.889102',pos=1)
+
+
+```
+
+##### Bootstrapping Method
+
+
+```{r}
+nums<-10000
+
+results<-rep(NA,nums)
+
+for (i in 1:nums){
+  
+  mean_marans<-mean(sample(Marans,size=40,replace = TRUE))
+  mean_Ameraucana<-mean(sample(Ameraucana,size=40,replace = TRUE))
+  
+  results[i]<- mean_marans-mean_Ameraucana
+}
+
+```
+
+
+```{r}
+hist(results,freq=FALSE,xlab='Mean difference in for Amount of feed', main='Sampling Distributiion of the Sample mean')
+
+lines(x=seq(0,8,0.1),dnorm(seq(0,8,0.1),mean=mean(results),sd=sd(results)))
+```
+
+###### Building confidence interval
+
+```{r}
+c(quantile(results,c(0.025,0.975)))
+```
+
+###### Plotting Bootstrapping confidence interval
+
+```{r}
+plot(seq(-7,7,0.01),dt(seq(-7,7,0.01),n-1),type='l',col='orange',xlab ='Difference in mean for Amount of feed',ylab = '',main='Bootstrapping Confidence Interval Graph')
+abline(v = c( 1.20,5.95 ),  col = c("red"))
+text(qt(0.001,n-1),0.3,'  1.20 b/w  5.95  ',pos=2)
+abline(v = c( -1.29,-5.95 ),  col = c("red"))
+text(qt(0.9999,n-1),0.3,' -1.20 b/w -5.95  ',pos=3)
+
+```
+
+###### Plotting null hypothesis 
+
+
+  
+```{r}
+
+nums<-1000
+
+results_h0<-rep(NA,nums)
+
+for (i in 1:nums){
+  
+  s<-transform(df_new, GallusBreed=sample(GallusBreed))
+  m<-mean(s$AmountOfFeed[s$GallusBreed=='Marans'])
+  a<-mean(s$AmountOfFeed[s$GallusBreed=='Ameraucana'])
+  results_h0[i]<- m - a
+}
+
+```
+
+
+```{r}
+hist(results_h0,freq=FALSE,xlab='Mean difference in Amount of feed ',main='Difference in mean under null hypothesis is true',xlim=c(-5,5))
+
+abline(v=x_bar,col='red')
+abline(v=-x_bar,col='red')
+
+```
+
+
+
+
+```{r}
+upper_val<-sum(results_h0 >=x_bar)
+lower_val<-sum(results_h0<=-x_bar)
+
+p_val<- (upper_val+lower_val)/nums
+
+p_val
+
+```
+
+
+```{r}
+p_value
+
+```
+
+###### Interpretation
+There is strong evidence that(p-value=0.01116669) to suggest the true mean difference in Amount of feed given to gallus chicken is greater than zero. We reject the null hypothesis that the true mean difference is equal to zero at α = 0.05 level.Using Confidence interval created by bootstrap we are 95% confident that the true mean difference is between 1.925 and 6.050. 
+
+
+##### Two Sample Test for difference in Proportion
+
+What is the common beak color of Gallus Chicken with Marans and Ameraucana?.
+
+Conditions for doing Two sample test for proportions.
+
+Sample needs to be representative of the population-Gallus Breed.
+
+Categorial response variable with 2 categories- Brown and White.
+
+2 independent samples from 2 populations- Marans and Ameraucana.
+
+np̂ ≥ 10  and n(1 -p̂) ≥ 10 for both population.
+
+
+```{r}
+
+ma<-df_new%>%group_by(GallusBreed)%>%count(GallusBeakColor)
+ma
+```
+
+Hypothesis Testing:
+
+The True Proportion between marans and Ameraucana white beak color of Gallus Chicken  is 0.
+
+$$H_0: P_0-P_w=  0 $$
+
+The True Proportion between marans and Ameraucana white beak color of Gallus Chicken  is not 0.
+
+$$H_0: P_0-P_w \neq 0 $$
+
+
+```{r}
+Pw_hat<- 798/895
+Pw_hat
+Po_hat<-40/55
+Po_hat
+P_0<-0
+
+n_w<-895
+n_o<-55
+
+p_w<-(Pw_hat*(1-Pw_hat))/n_w
+p_o<-(Po_hat*(1-Po_hat))/n_o
+
+z<-(Po_hat-Pw_hat-P_0)/sqrt(p_w+p_o)
+z
+
+```
+
+###### Two sided p-value
+
+
+```{r}
+
+two_sided<-pnorm(q=z,lower.tail = TRUE)*2
+two_sided
+
+```
+
+###### Confidence interval
+###### Upper Bound
+
+```{r}
+upper<-(Pw_hat-Po_hat)+(qnorm(0.975)*sqrt(p_w+p_o))
+upper
+
+```
+
+##### Lower Bound
+
+```{r}
+lower<-(Pw_hat-Po_hat)+(qnorm(0.025)*sqrt(p_w+p_o))
+lower
+```
+
+###### Plotting Confidence Interval
+```{r}
+plot(seq(-4,4,0.01),dt(seq(-4,4,0.01),n-1),type='l',xlab = '',ylab = '',main='Building 95% confidence interval')
+abline(v = c( upper,lower),col=c('blue','red'))
+text(qt(0.05,n-1),0.3,'Lower bound Confidence Interval',srt=0.3,pos=3)
+text(qt(0.05,n-1),0.2,'-0.04489756 b/w -0.2837972',srt=0.3,pos=3)
+abline(v = c(-upper,-lower),col=c('blue','red'))
+text(qt(0.975,n-1),0.3,'Upper bound Confidence Interval',srt=0.3,pos=3)
+text(qt(0.975,n-1),0.2,' 0.04489756 b/w 0.2837972 ',srt=0.3,pos=3)
+
+```
+
+##### Bootstrapping Method
+
+```{r}
+M<-rep(c(1,0),c(798,895-798))
+A<-rep(c(1,0),c(40,55-40))
+
+nums<-10000
+
+results<-rep(NA,nums)
+
+for(i in 1:nums){
+  
+  m<-mean(sample(x=M,size=n_w,replace=TRUE))
+  a<-mean(sample(x=A,size=n_o,replace=TRUE))
+  results[i]<-m-a
+  
+}
+```
+
+
+```{r}
+hist(results,freq=FALSE,xlab='Difference in proportion of colour of beaks in Marans and Ameraucana',main='Difference in Proportion')
+
+lines(x=seq(0,0.4,0.01),dnorm(seq(0,0.4,0.01),mean=mean(results),sd=sd(results)))
+
+```
+
+###### Bootstrapping confidence interval
+
+```{r}
+c(quantile(results,c(0.025,0.975)))
+```
+
+###### Bootstrapping Confidence interval
+```{r}
+plot(seq(-4,4,0.01),dt(seq(-4,4,0.01),n-1),type='l',xlab = '',ylab = '',main='Bootstrapping confidence interval')
+abline(v = c( upper,lower),col=c('blue','red'))
+text(qt(0.05,n-1),0.3,'Lower bound Confidence Interval',srt=0.3,pos=3)
+text(qt(0.05,n-1),0.2,'-0.04773235 and -0.28796343',srt=0.3,pos=3)
+abline(v = c(-upper,-lower),col=c('blue','red'))
+text(qt(0.975,n-1),0.3,'Upper bound Confidence Interval',srt=0.3,pos=3)
+text(qt(0.975,n-1),0.2,'0.04773235 and 0.28796343 ',srt=0.3,pos=3)
+
+
+```
+
+###### Bootstrapping for null hypothesis
+
+```{r}
+
+new_l<-data.frame("White"=c(M,A),"GallusBreed"=rep(c("Marans","Ameraucana"),c(n_w,n_o)))
+summary(new_l$GallusBreed)
+```
+
+
+```{r}
+
+m<-mean(new_l$White[new_l$GallusBreed=='Marans'])
+a<-mean(new_l$White[new_l$GallusBreed=='Ameraucana'])
+
+m==Pw_hat
+a==Po_hat
+```
+
+
+```{r}
+nums<-10000
+
+H0<- rep(NA, nums)
+
+for (i in 1:nums)
+  {
+   s<-transform(new_l,GallusBreed=sample(GallusBreed))
+   prop_m<-mean(s$White[s$GallusBreed=='Marans'])
+   prop_a<-mean(s$White[s$GallusBreed=='Ameraucana'])
+   H0[i]<-prop_m-prop_a
+}
+
+```
+
+```{r}
+hist(H0,freq=FALSE,main='Distribution of difference in sample Proportion under H0=0',xlab='Average Proportion of White eggs in Gallus breed',xlim = c(-0.2,0.2))
+diff_prop<-Pw_hat-Po_hat
+abline(v=c(diff_prop),col='red')
+abline(v=c(-diff_prop),col='blue')
+```
+
+
+```{r}
+upper<-sum(H0<=-diff_prop)
+lower<-sum(H0>=diff_prop)
+
+p_va<- (upper+lower)/nums
+p_va
+```
+
+###### Interpretation
+The P-value( 8e-04) suggest that there is strong evidence that Average differnce between White eggs in Marans and Ameraucana is not same. We reject null hypothesis at the α = 0.05 level that both  proportions are not equal. With 95% confidence interval we say that true proportion of White eggs lies between 0.04773235 and 0.28796343. 
+ 
+
+
+##### Chi-Square Goodness of fit
+
+Conditions:
+Single category with more than three categorical variable
+Atleast five datapoints in each category
+```{r}
+da<-df_new$GallusLegShanksColor
+head(da)
+```
+
+
+```{r}
+table(da)
+```
+
+
+```{r}
+prop.table(table(da))
+```
+
+Paramter of interest
+
+TO find True Value of PA,PB,PC,PD
+
+Hypothesis:
+
+Null Hypothesis:
+
+H0 : PA = PB = PC = PD  = 0.4
+
+The proportion of each Gallus leg color is equal to 0.4
+
+Alternative Hypothesis
+
+HA : Some pi ≠ .4
+
+The proportion of atleast one gallus leg color is not equal to 0.4
+
+Under Null hypothesis the expected count is (950)(0.4)=380
+
+###### According to my null hypothesis all the proportion are equal to 0.4
+
+```{r}
+p<-c(106,10,45,789)*0.4
+p
+```
+
+
+###### Finding the Chi square value.
+
+```{r}
+chi<-sum(((table(da)-p)^2)/p)
+chi
+
+```
+
+###### P-value
+
+```{r}
+pchisq(chi,4-1,lower.tail = FALSE)
+
+```
+
+###### Interpretation:
+
+The data provides that there is strong evidence that the proportion is not equal to 0.4. We reject the null hypothesis at the α = 0.05 level.
+
+###### Randomized approach 
+
+```{r}
+n_h0<-rep(c('BROWN','Slate Black','Slate Blue','White'),380)
+table(n_h0)
+
+```
+
+
+```{r}
+nums<-1000
+
+h0<-rep(NA,nums)
+
+for (i in 1: nums)
+  {
+  
+  m<-sample(n_h0,950,replace=TRUE)
+  h0[i]<-sum(((table(m)-380)^2)/380)
+}
+
+```
+
+
+```{r}
+hist(h0,freq=FALSE,main='Distribution of Chi Square Statistics under Null Hypothesis',xlab='Chi-Square under null hypothesis=0.4')
+
+```
+
+
+```{r}
+p_<-sum(h0>=sum(((table(da)-p)^2)/p))/nums
+p_
+
+```
+
+###### Interpretation:
+
+The data provides that there is strong evidence that the proportion is not equal to 0.4. We reject the null hypothesis at the α = 0.05 level.
+
+
+```{r ref.label=knitr::all_labels(), echo = T, eval = F}
+```
+
